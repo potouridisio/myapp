@@ -1,8 +1,10 @@
 const express = require('express')
+const cors = require('cors')
 const app = express()
-const port = 3000
 
-app.get('/comments', (req, res) => {
+app.use(cors())
+
+app.get('/comments', function (req, res, next) {
   res.json([
     {
       id: 1,
@@ -127,7 +129,7 @@ app.get('/comments', (req, res) => {
   ])
 })
 
-app.get('/posts', (req, res) => {
+app.get('/posts', function (req, res, next) {
   res.json([
     {
       id: 1,
@@ -212,7 +214,7 @@ app.get('/posts', (req, res) => {
   ])
 })
 
-app.get('/users', (req, res) => {
+app.get('/users', function (req, res, next) {
   res.json([
     {
       id: 1,
@@ -247,6 +249,6 @@ app.get('/users', (req, res) => {
   ])
 })
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
+app.listen(80, function () {
+  console.log('CORS-enabled web server listening on port 80')
 })
