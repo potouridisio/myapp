@@ -1,11 +1,171 @@
 const express = require('express')
 const cors = require('cors')
+const sqlite3 = require('sqlite3').verbose()
 const app = express()
+const port = 3000
 
+// Create in-memory SQLite database
+const db = new sqlite3.Database(':memory:')
+
+// Create tables
+db.serialize(() => {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY,
+      name TEXT,
+      email TEXT,
+      createdAt TEXT
+    )
+  `)
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS posts (
+      id INTEGER PRIMARY KEY,
+      title TEXT,
+      content TEXT,
+      userId INTEGER,
+      createdAt TEXT,
+      FOREIGN KEY (userId) REFERENCES users(id)
+    )
+  `)
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS comments (
+      id INTEGER PRIMARY KEY,
+      content TEXT,
+      postId INTEGER,
+      userId INTEGER,
+      createdAt TEXT,
+      FOREIGN KEY (postId) REFERENCES posts(id),
+      FOREIGN KEY (userId) REFERENCES users(id)
+    )
+  `)
+})
+
+// Express middleware
 app.use(cors())
+app.use(express.json())
 
-app.get('/comments', function (req, res, next) {
-  res.json([
+// Seed the database with initial data
+// Seed the database with initial data
+const seedData = () => {
+  const users = [
+    {
+      id: 1,
+      name: 'Alice Thompson',
+      email: 'alice.thompson@example.com',
+      createdAt: '2023-10-05T08:00:00Z',
+    },
+    {
+      id: 2,
+      name: 'Daniel Rodriguez',
+      email: 'daniel.rodriguez@example.com',
+      createdAt: '2023-10-06T09:15:00Z',
+    },
+    {
+      id: 3,
+      name: 'Sophie Patel',
+      email: 'sophie.patel@example.com',
+      createdAt: '2023-10-07T10:30:00Z',
+    },
+    {
+      id: 4,
+      name: 'Chris Johnson',
+      email: 'chris.johnson@example.com',
+      createdAt: '2023-10-08T11:45:00Z',
+    },
+    {
+      id: 5,
+      name: 'Emily Davis',
+      email: 'emily.davis@example.com',
+      createdAt: '2023-10-09T13:00:00Z',
+    },
+  ]
+
+  const posts = [
+    {
+      id: 1,
+      title: 'Responsive Web Design Techniques',
+      content:
+        'Just published a comprehensive guide on responsive web design techniques. Check it out!',
+      userId: 1,
+      createdAt: '2023-10-10T08:30:00Z',
+    },
+    {
+      id: 2,
+      title: 'Optimizing Front-End Performance',
+      content:
+        'Shared my experience on optimizing front-end performance. Tips and tricks for faster web applications!',
+      userId: 2,
+      createdAt: '2023-10-11T10:45:00Z',
+    },
+    {
+      id: 3,
+      title: 'Exploring Modern JavaScript Frameworks',
+      content:
+        'Diving into the world of modern JavaScript frameworks. Which one is your favorite?',
+      userId: 3,
+      createdAt: '2023-10-12T12:15:00Z',
+    },
+    {
+      id: 4,
+      title: 'CSS Grid Layout Mastery',
+      content:
+        'Mastering CSS Grid layout for creating complex and responsive web layouts.',
+      userId: 4,
+      createdAt: '2023-10-13T14:20:00Z',
+    },
+    {
+      id: 5,
+      title: 'Building Accessible Web Applications',
+      content:
+        'A guide on making web applications accessible to users with disabilities.',
+      userId: 5,
+      createdAt: '2023-10-14T16:45:00Z',
+    },
+    {
+      id: 6,
+      title: 'The Art of Web Animation',
+      content:
+        'Exploring the creative side of web animation. Tips for adding life to your web projects.',
+      userId: 1,
+      createdAt: '2023-10-15T09:30:00Z',
+    },
+    {
+      id: 7,
+      title: 'Front-End Frameworks Comparison',
+      content:
+        'Comparing popular front-end frameworks like React, Vue, and Angular. Pros and cons of each.',
+      userId: 3,
+      createdAt: '2023-10-16T11:20:00Z',
+    },
+    {
+      id: 8,
+      title: 'Mastering SASS for Stylish UIs',
+      content:
+        'Delving into the world of SASS to enhance your styling skills and create stylish user interfaces.',
+      userId: 2,
+      createdAt: '2023-10-17T13:10:00Z',
+    },
+    {
+      id: 9,
+      title: 'Web Accessibility Best Practices',
+      content:
+        'Best practices for ensuring web accessibility. Tips for inclusive web development.',
+      userId: 4,
+      createdAt: '2023-10-18T15:30:00Z',
+    },
+    {
+      id: 10,
+      title: 'The Future of Web Development',
+      content:
+        'Exploring emerging trends and technologies shaping the future of web development.',
+      userId: 5,
+      createdAt: '2023-10-19T17:45:00Z',
+    },
+  ]
+
+  const comments = [
     {
       id: 1,
       content:
@@ -126,129 +286,58 @@ app.get('/comments', function (req, res, next) {
       userId: 2,
       createdAt: '2023-10-24T17:15:00Z',
     },
-  ])
+  ]
+
+  // Insert data into tables
+  const insertData = (table, data) => {
+    const placeholders = Object.keys(data[0])
+      .map(() => '?')
+      .join(',')
+    const columns = Object.keys(data[0]).join(',')
+
+    const insertStatement = db.prepare(
+      `INSERT INTO ${table} (${columns}) VALUES (${placeholders})`
+    )
+
+    data.forEach((row) => {
+      insertStatement.run(Object.values(row))
+    })
+
+    insertStatement.finalize()
+  }
+
+  insertData('users', users)
+  insertData('posts', posts)
+  insertData('comments', comments)
+}
+
+// Call the seedData function to populate the database
+seedData()
+
+// Endpoints
+
+// Get all users
+app.get('/users', (req, res) => {
+  db.all('SELECT * FROM users', (err, rows) => {
+    res.json(rows)
+  })
 })
 
-app.get('/posts', function (req, res, next) {
-  res.json([
-    {
-      id: 1,
-      title: 'Responsive Web Design Techniques',
-      content:
-        'Just published a comprehensive guide on responsive web design techniques. Check it out!',
-      userId: 1,
-      createdAt: '2023-10-10T08:30:00Z',
-    },
-    {
-      id: 2,
-      title: 'Optimizing Front-End Performance',
-      content:
-        'Shared my experience on optimizing front-end performance. Tips and tricks for faster web applications!',
-      userId: 2,
-      createdAt: '2023-10-11T10:45:00Z',
-    },
-    {
-      id: 3,
-      title: 'Exploring Modern JavaScript Frameworks',
-      content:
-        'Diving into the world of modern JavaScript frameworks. Which one is your favorite?',
-      userId: 3,
-      createdAt: '2023-10-12T12:15:00Z',
-    },
-    {
-      id: 4,
-      title: 'CSS Grid Layout Mastery',
-      content:
-        'Mastering CSS Grid layout for creating complex and responsive web layouts.',
-      userId: 4,
-      createdAt: '2023-10-13T14:20:00Z',
-    },
-    {
-      id: 5,
-      title: 'Building Accessible Web Applications',
-      content:
-        'A guide on making web applications accessible to users with disabilities.',
-      userId: 5,
-      createdAt: '2023-10-14T16:45:00Z',
-    },
-    {
-      id: 6,
-      title: 'The Art of Web Animation',
-      content:
-        'Exploring the creative side of web animation. Tips for adding life to your web projects.',
-      userId: 1,
-      createdAt: '2023-10-15T09:30:00Z',
-    },
-    {
-      id: 7,
-      title: 'Front-End Frameworks Comparison',
-      content:
-        'Comparing popular front-end frameworks like React, Vue, and Angular. Pros and cons of each.',
-      userId: 3,
-      createdAt: '2023-10-16T11:20:00Z',
-    },
-    {
-      id: 8,
-      title: 'Mastering SASS for Stylish UIs',
-      content:
-        'Delving into the world of SASS to enhance your styling skills and create stylish user interfaces.',
-      userId: 2,
-      createdAt: '2023-10-17T13:10:00Z',
-    },
-    {
-      id: 9,
-      title: 'Web Accessibility Best Practices',
-      content:
-        'Best practices for ensuring web accessibility. Tips for inclusive web development.',
-      userId: 4,
-      createdAt: '2023-10-18T15:30:00Z',
-    },
-    {
-      id: 10,
-      title: 'The Future of Web Development',
-      content:
-        'Exploring emerging trends and technologies shaping the future of web development.',
-      userId: 5,
-      createdAt: '2023-10-19T17:45:00Z',
-    },
-  ])
+// Get all posts
+app.get('/posts', (req, res) => {
+  db.all('SELECT * FROM posts', (err, rows) => {
+    res.json(rows)
+  })
 })
 
-app.get('/users', function (req, res, next) {
-  res.json([
-    {
-      id: 1,
-      name: 'Alice Thompson',
-      email: 'alice.thompson@example.com',
-      createdAt: '2023-10-05T08:00:00Z',
-    },
-    {
-      id: 2,
-      name: 'Daniel Rodriguez',
-      email: 'daniel.rodriguez@example.com',
-      createdAt: '2023-10-06T09:15:00Z',
-    },
-    {
-      id: 3,
-      name: 'Sophie Patel',
-      email: 'sophie.patel@example.com',
-      createdAt: '2023-10-07T10:30:00Z',
-    },
-    {
-      id: 4,
-      name: 'Chris Johnson',
-      email: 'chris.johnson@example.com',
-      createdAt: '2023-10-08T11:45:00Z',
-    },
-    {
-      id: 5,
-      name: 'Emily Davis',
-      email: 'emily.davis@example.com',
-      createdAt: '2023-10-09T13:00:00Z',
-    },
-  ])
+// Get all comments
+app.get('/comments', (req, res) => {
+  db.all('SELECT * FROM comments', (err, rows) => {
+    res.json(rows)
+  })
 })
 
-app.listen(80, function () {
-  console.log('CORS-enabled web server listening on port 80')
+// Start the server
+app.listen(port, () => {
+  console.log(`Server is running at http://localhost:${port}`)
 })
