@@ -337,6 +337,32 @@ app.get('/comments', (req, res) => {
   })
 })
 
+// Endpoint to create a new post
+app.post('/posts', (req, res) => {
+  const { title, content, userId } = req.body
+
+  if (!title || !content || !userId) {
+    return res
+      .status(400)
+      .json({ error: 'Title, content, and userId are required fields.' })
+  }
+
+  const createdAt = new Date().toISOString() // Get current timestamp
+
+  db.run(
+    'INSERT INTO posts (title, content, userId, createdAt) VALUES (?, ?, ?, ?)',
+    [title, content, userId, createdAt],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: 'Error creating the post.' })
+      }
+
+      const postId = this.lastID // Get the ID of the inserted post
+      res.status(201).json({ id: postId, title, content, userId, createdAt })
+    }
+  )
+})
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`)
