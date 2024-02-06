@@ -363,6 +363,31 @@ app.post('/posts', (req, res) => {
   )
 })
 
+// Endpoint to delete a post
+app.delete('/posts/:postId', (req, res) => {
+  const postId = req.params.postId
+
+  // Check if the post exists
+  db.get('SELECT * FROM posts WHERE id = ?', [postId], (err, row) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error finding the post.' })
+    }
+
+    if (!row) {
+      return res.status(404).json({ error: 'Post not found.' })
+    }
+
+    // Delete the post
+    db.run('DELETE FROM posts WHERE id = ?', [postId], (err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Error deleting the post.' })
+      }
+
+      res.status(200).json({ message: 'Post deleted successfully.' })
+    })
+  })
+})
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`)
